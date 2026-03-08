@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>30 Kunlik Odat Kuzatuvchi</title>
+
+<!-- Telegram WebApp SDK — MAJBURIY -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #faf7f2);
+    --paper: var(--tg-theme-secondary-bg-color, #fffef9);
+    --ink: var(--tg-theme-text-color, #1a1209);
+    --ink3: var(--tg-theme-hint-color, #8a7a6a);
+    --accent: var(--tg-theme-button-color, #c8622a);
+    --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --link: var(--tg-theme-link-color, #c8622a);
+    --line: #e8e0d4;
+    --green: #4a8c6a;
+    --red: #c84a4a;
+    --yellow: #e8a44a;
+    --blue: #4a6a8c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ── LOADING ─────────────────────────────── */
+  #loadingScreen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; z-index: 1000;
+    transition: opacity 0.3s;
+  }
+  .loader-logo { font-size: 48px; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+  .loader-text { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; }
+  .loader-bar { width:180px; height:4px; background:var(--line); border-radius:2px; overflow:hidden; }
+  .loader-fill { height:100%; background:var(--accent); border-radius:2px; animation:load 1.5s ease-in-out infinite; }
+  @keyframes load { 0%{width:0%} 100%{width:100%} }
+
+  /* ── TABS ────────────────────────────────── */
+  .tabs {
+    display: flex;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    flex: 1; padding: 10px 4px 8px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    cursor: pointer; transition: all 0.15s;
+    font-size: 10px; font-weight: 600;
+    color: var(--ink3);
+  }
+  .tab .icon { font-size: 20px; }
+  .tab.active { color: var(--accent); }
+  .tab.active .tab-dot {
+    width: 4px; height: 4px; background: var(--accent);
+    border-radius: 50%; margin-top: 2px;
+  }
+
+  /* ── CONTENT ─────────────────────────────── */
+  .content {
+    padding: 16px 16px 80px;
+    max-width: 600px; margin: 0 auto;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── SECTION HEADER ──────────────────────── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .section-sub { font-size: 13px; color: var(--ink3); margin-bottom: 18px; }
+
+  /* ── CARDS ───────────────────────────────── */
+  .card {
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  /* ── HABIT SETUP CARD ────────────────────── */
+  .habit-setup-card {
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .habit-setup-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .h-emoji {
+    width: 40px; height: 40px;
+    font-size: 22px; border-radius: 10px;
+    background: var(--bg); border: 1.5px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .h-input {
+    flex: 1; border: none; background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 600;
+    color: var(--ink); outline: none;
+    border-bottom: 1.5px solid var(--line); padding-bottom: 3px;
+  }
+  .h-input:focus { border-bottom-color: var(--accent); }
+  .h-colors {
+    display: flex; gap: 6px; margin-top: 10px;
+    padding-left: 50px;
+  }
+  .h-color {
+    width: 22px; height: 22px; border-radius: 50%;
+    cursor: pointer; border: 2px solid transparent;
+    transition: transform 0.15s;
+  }
+  .h-color.sel { border-color: var(--ink); transform: scale(1.15); }
+  .del-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; font-size: 16px;
+    color: var(--ink3); cursor: pointer; padding: 4px 6px;
+    opacity: 0.5; transition: opacity 0.2s;
+  }
+  .del-btn:hover { opacity: 1; color: var(--red); }
+
+  /* ── ADD BUTTON ──────────────────────────── */
+  .add-btn {
+    width: 100%; padding: 14px;
+    border: 2px dashed var(--line); border-radius: 14px;
+    background: transparent; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--ink3);
+    transition: all 0.2s;
+  }
+  .add-btn:active { background: var(--bg); }
+
+  /* ── MAIN BUTTON (Telegram style) ────────── */
+  .tg-main-btn {
+    width: 100%; padding: 14px;
+    background: var(--accent); color: var(--btn-text);
+    border: none; border-radius: 14px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 700;
+    margin-top: 12px; transition: opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tg-main-btn:active { opacity: 0.85; }
+
+  /* ── TRACKER TABLE ───────────────────────── */
+  .week-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-radius: 12px; padding: 8px 14px;
+    margin-bottom: 12px;
+  }
+  .week-nav button {
+    background: none; border: none; font-size: 20px;
+    cursor: pointer; color: var(--ink3); padding: 0 4px;
+  }
+  .week-label { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; }
+
+  .tracker-wrap {
+    overflow-x: auto; margin-bottom: 12px;
+    border-radius: 14px; border: 1.5px solid var(--line);
+    background: var(--paper);
+  }
+  table.tr-table { width: 100%; border-collapse: collapse; min-width: 340px; }
+  .tr-table thead { background: var(--ink); color: white; }
+  .tr-table th { padding: 10px 6px; font-size: 10px; font-family:'DM Mono',monospace; text-align: center; }
+  .tr-table th.name-th { text-align: left; padding-left: 12px; font-size: 11px; width: 110px; }
+  .tr-table tbody tr { border-bottom: 1px solid var(--line); }
+  .tr-table tbody tr:last-child { border-bottom: none; }
+  .name-td { padding: 8px 6px 8px 12px; }
+  .habit-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .day-td { text-align: center; padding: 6px 3px; }
+  .chk {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 2px solid var(--line); background: var(--bg);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; cursor: pointer;
+    transition: all 0.15s; color: transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chk.done { border-color: transparent; color: white; }
+  .chk.today { border-color: var(--accent); }
+  .chk.future { opacity: 0.3; cursor: default; }
+  .chk:active:not(.future) { transform: scale(0.9); }
+  .pct-td { padding: 6px 8px 6px 4px; }
+  .mini-prog { display: flex; align-items: center; gap: 5px; }
+  .mini-track { flex: 1; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .mini-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .mini-pct { font-size: 10px; font-family:'DM Mono',monospace; color: var(--ink3); min-width: 26px; }
+
+  /* ── STATS ───────────────────────────────── */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat-box {
+    background: var(--paper); border: 1.5px solid var(--line);
+    border-radius: 12px; padding: 14px 12px;
+    position: relative; overflow: hidden;
+  }
+  .stat-box::before {
+    content:''; position:absolute; top:0;left:0;
+    width:3px;height:100%;
+  }
+  .stat-box.o::before{background:var(--accent);}
+  .stat-box.y::before{background:var(--yellow);}
+  .stat-box.g::before{background:var(--green);}
+  .stat-box.b::before{background:var(--blue);}
+  .stat-lbl { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:4px; }
+  .stat-val { font-family:'Playfair Display',serif;font-size:30px;font-weight:900;line-height:1; }
+  .stat-sub { font-size:11px;color:var(--ink3);margin-top:2px; }
+
+  /* ── BAR CHART ───────────────────────────── */
+  .bar-chart { display:flex;align-items:flex-end;gap:6px;height:100px;padding-top:10px; }
+  .bar-item { flex:1;display:flex;flex-direction:column;align-items:center;gap:3px; }
+  .bar-col { width:100%;border-radius:5px 5px 0 0;min-height:3px;transition:height 0.5s; }
+  .bar-lbl { font-size:9px;font-family:'DM Mono',monospace;color:var(--ink3);text-align:center; }
+  .bar-val { font-size:9px;font-family:'DM Mono',monospace;font-weight:600; }
+
+  /* ── HEATMAP ─────────────────────────────── */
+  .heatmap { display:grid;grid-template-columns:repeat(10,1fr);gap:4px; }
+  .hc {
+    aspect-ratio:1;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-family:'DM Mono',monospace;
+    color:white;font-weight:700;cursor:default;
+  }
+
+  /* ── LINE CHART ──────────────────────────── */
+  .line-svg { width:100%;overflow:visible; }
+
+  /* ── HABIT ANALYSIS ──────────────────────── */
+  .analysis-item {
+    background:var(--paper);border:1.5px solid var(--line);
+    border-radius:12px;padding:14px;margin-bottom:10px;
+  }
+  .ai-top { display:flex;align-items:center;gap:8px;margin-bottom:8px; }
+  .ai-badge {
+    padding:2px 8px;border-radius:20px;
+    font-size:10px;font-weight:700;color:white;
+    font-family:'DM Mono',monospace;
+  }
+  .ai-streak { margin-left:auto;font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace; }
+  .ai-bar { display:flex;align-items:center;gap:8px; }
+  .ai-track { flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden; }
+  .ai-fill { height:100%;border-radius:4px;transition:width 0.6s; }
+  .ai-pct { font-size:14px;font-weight:700;font-family:'DM Mono',monospace;min-width:38px;text-align:right; }
+  .ai-meta { margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace; }
+  .ai-meta strong { color:var(--ink); }
+
+  /* ── MOTIVATION ──────────────────────────── */
+  .motivation {
+    background:linear-gradient(135deg,var(--accent),var(--yellow));
+    border-radius:14px;padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;color:white;
+    box-shadow:0 4px 16px rgba(200,98,42,0.3);
+  }
+  .mot-title { font-family:'Playfair Display',serif;font-size:15px;font-weight:700; }
+  .mot-sub { font-size:11px;opacity:0.85;margin-top:2px; }
+
+  /* ── EMOJI PICKER ────────────────────────── */
+  #emojiPicker {
+    position:fixed;z-index:500;
+    background:var(--paper);border:1.5px solid var(--line);
+    border-radius:14px;padding:10px;
+    display:grid;grid-template-columns:repeat(6,1fr);gap:4px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.15);
+    font-size:22px;
+  }
+  .ep-opt { cursor:pointer;padding:6px;border-radius:8px;text-align:center;transition:background 0.1s; }
+  .ep-opt:active { background:var(--bg); }
+
+  /* ── DATE INPUT ──────────────────────────── */
+  .date-row { display:flex;gap:10px;margin-bottom:14px; }
+  .date-field { flex:1; }
+  .date-field label { display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:5px; }
+  .date-field input {
+    width:100%;border:1.5px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;
+    background:var(--bg);color:var(--ink);outline:none;
+  }
+  .date-field input:focus { border-color:var(--accent); }
+
+  /* ── TOAST ───────────────────────────────── */
+  #toast {
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:white;padding:10px 20px;
+    border-radius:20px;font-size:13px;font-weight:600;
+    opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;
+    white-space:nowrap;
+  }
+
+  .save-indicator {
+    text-align:center;font-size:11px;color:var(--ink3);
+    font-family:'DM Mono',monospace;padding:4px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --line: #2e2e2e;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="loader-logo">📓</div>
+  <div class="loader-text">Yuklanmoqda...</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<div class="content" id="app" style="display:none">
+
+  <!-- SETUP PAGE -->
+  <div class="page active" id="page-setup">
+    <div class="section-title">⚙️ Odatlarni sozlash</div>
+    <div class="section-sub">30 kun kuzatmoqchi bo'lgan odatlaringiz</div>
+
+    <div class="date-row">
+      <div class="date-field">
+        <label>Boshlanish</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="date-field">
+        <label>Tugash (avtomatik)</label>
+        <input type="date" id="endDate" readonly style="opacity:0.6">
+      </div>
+    </div>
+
+    <div id="habitsSetup"></div>
+    <button class="add-btn" onclick="addHabit()">+ Yangi odat qo'shish</button>
+    <button class="tg-main-btn" onclick="saveAndStart()">✅ Saqlash va kuzatishni boshlash</button>
+    <div class="save-indicator" id="saveStatus">☁️ CloudStorage'ga avtomatik saqlanadi</div>
+  </div>
+
+  <!-- TRACKER PAGE -->
+  <div class="page" id="page-tracker">
+    <div id="motivationDiv" style="display:none"></div>
+
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">‹</button>
+      <span class="week-label" id="weekLabel">1–7 kun</span>
+      <button onclick="changeWeek(1)">›</button>
+    </div>
+
+    <div class="tracker-wrap">
+      <table class="tr-table" id="trTable">
+        <thead></thead><tbody></tbody>
+      </table>
+    </div>
+
+    <button class="tg-main-btn" onclick="markAllToday()" style="background:var(--green)">
+      ✅ Barchasini bugun bajarildi
+    </button>
+    <button class="tg-main-btn" onclick="shareSummary()" style="margin-top:8px">
+      📊 Natijamni yuborish
+    </button>
+  </div>
+
+  <!-- STATS PAGE -->
+  <div class="page" id="page-stats">
+    <div class="section-title">📊 Tahlil</div>
+    <div class="section-sub">30 kunlik progress va statistika</div>
+    <div class="stats-row" id="statsCards"></div>
+
+    <div class="card">
+      <div style="font-weight:700;font-family:'Playfair Display',serif;font-size:15px;margin-bottom:12px">📈 Haftalik progress</div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;font-family:'Playfair Display',serif;font-size:15px;margin-bottom:12px">🗺️ 30 kunlik xarita</div>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:700;font-family:'Playfair Display',serif;font-size:15px;margin-bottom:10px">📉 Kunlik grafik</div>
+      <svg class="line-svg" id="lineChart" height="120" viewBox="0 0 400 120"></svg>
+    </div>
+
+    <div style="font-weight:700;font-family:'Playfair Display',serif;font-size:17px;margin:16px 0 10px">🎯 Odat tahlili</div>
+    <div id="habitAnalysis"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM TABS -->
+<div class="tabs" id="mainTabs" style="display:none">
+  <div class="tab active" onclick="showPage('setup')" id="tab-setup">
+    <span class="icon">⚙️</span><span>Sozlash</span><div class="tab-dot"></div>
+  </div>
+  <div class="tab" onclick="showPage('tracker')" id="tab-tracker">
+    <span class="icon">✅</span><span>Kuzatish</span>
+  </div>
+  <div class="tab" onclick="showPage('stats')" id="tab-stats">
+    <span class="icon">📊</span><span>Tahlil</span>
+  </div>
+</div>
+
+<!-- EMOJI PICKER -->
+<div id="emojiPicker" style="display:none"></div>
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  TELEGRAM WEBAPP INIT
+// ═══════════════════════════════════════════════
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand(); // To'liq ekranga ochish
+
+// URL parametrlardan tab
+const urlParams = new URLSearchParams(window.location.search);
+const initTab = urlParams.get('tab') || 'setup';
+
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+const COLORS  = ['#c8622a','#e8a44a','#4a8c6a','#4a6a8c','#8c4a8c','#8c6a4a','#c84a4a','#4a8c8c'];
+const EMOJIS  = ['🏃','💪','🧘','📚','💧','🥗','😴','✍️','🎵','🧹','💊','🚴','🏊','🎨','🤸','🌿','☕','🚶','🏋️','🎯'];
+const DAYS_UZ = ['Yak','Du','Se','Cho','Pay','Ju','Sha'];
+const MONTHS  = ['Yan','Fev','Mar','Apr','May','Iyn','Iyl','Avg','Sen','Okt','Noy','Dek'];
+const CLOUD_KEY = 'habitTracker_v1';
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let state = {
+  habits: [],
+  startDate: new Date().toISOString().split('T')[0],
+  logs: {},
+  currentWeek: 0,
+};
+let idCounter = 10;
+
+// ═══════════════════════════════════════════════
+//  CLOUD STORAGE (Telegram)
+// ═══════════════════════════════════════════════
+function cloudSave(cb) {
+  // CloudStorage max 1024 bytes per key
+  // Katta ma'lumot uchun ikki kalitga bo'lamiz
+  const data = JSON.stringify(state);
+
+  if (data.length > 900) {
+    // habits va startDate alohida
+    const meta = JSON.stringify({ habits: state.habits, startDate: state.startDate, idCounter, currentWeek: state.currentWeek });
+    const logs = JSON.stringify(state.logs);
+
+    tg.CloudStorage.setItem(CLOUD_KEY + '_meta', meta, () => {
+      tg.CloudStorage.setItem(CLOUD_KEY + '_logs', logs, () => {
+        if (cb) cb();
+        showSaveStatus('✅ Saqlandi');
+      });
+    });
+  } else {
+    tg.CloudStorage.setItem(CLOUD_KEY, data, () => {
+      if (cb) cb();
+      showSaveStatus('✅ Saqlandi');
+    });
+  }
+}
+
+function cloudLoad(cb) {
+  // Avval split versiyani tekshir
+  tg.CloudStorage.getItems([CLOUD_KEY, CLOUD_KEY + '_meta', CLOUD_KEY + '_logs'], (err, values) => {
+    if (err) { console.log('CloudStorage error:', err); if (cb) cb(); return; }
+
+    if (values[CLOUD_KEY + '_meta']) {
+      try {
+        const meta = JSON.parse(values[CLOUD_KEY + '_meta']);
+        const logs = values[CLOUD_KEY + '_logs'] ? JSON.parse(values[CLOUD_KEY + '_logs']) : {};
+        state.habits    = meta.habits || [];
+        state.startDate = meta.startDate || state.startDate;
+        state.logs      = logs;
+        state.currentWeek = meta.currentWeek || 0;
+        idCounter       = meta.idCounter || 10;
+      } catch(e) { console.log('Parse error:', e); }
+    } else if (values[CLOUD_KEY]) {
+      try {
+        const saved = JSON.parse(values[CLOUD_KEY]);
+        state = { ...state, ...saved };
+      } catch(e) { console.log('Parse error:', e); }
+    }
+    if (cb) cb();
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+function init() {
+  cloudLoad(() => {
+    // Default odatlar (birinchi marta)
+    if (!state.habits.length) {
+      state.habits = [
+        { id:1, name:"Suv ichish (8 stakan)", emoji:"💧", color:COLORS[2] },
+        { id:2, name:"30 daqiqa yurish",      emoji:"🚶", color:COLORS[0] },
+        { id:3, name:"Kitob o'qish",          emoji:"📚", color:COLORS[3] },
+      ];
+    }
+    document.getElementById('startDate').value = state.startDate;
+    updateEndDate();
+
+    // Loading ni yashirish
+    setTimeout(() => {
+      const ls = document.getElementById('loadingScreen');
+      ls.style.opacity = '0';
+      setTimeout(() => {
+        ls.style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('mainTabs').style.display = 'flex';
+        showPage(initTab);
+      }, 300);
+    }, 1200);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════
+function showPage(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.querySelector('.tab-dot')?.remove(); });
+
+  document.getElementById('page-' + tab).classList.add('active');
+  const tabEl = document.getElementById('tab-' + tab);
+  tabEl.classList.add('active');
+  const dot = document.createElement('div');
+  dot.className = 'tab-dot';
+  tabEl.appendChild(dot);
+
+  if (tab === 'tracker') renderTracker();
+  if (tab === 'stats')   renderStats();
+  if (tab === 'setup')   renderSetup();
+
+  // Telegram BackButton
+  if (tab !== 'setup') {
+    tg.BackButton.show();
+    tg.BackButton.onClick(() => showPage('setup'));
+  } else {
+    tg.BackButton.hide();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════
+function addHabit(name='', emoji='🎯', color=null) {
+  const id = idCounter++;
+  state.habits.push({ id, name, emoji, color: color || COLORS[state.habits.length % COLORS.length] });
+  renderSetup();
+}
+
+function delHabit(id) {
+  tg.showConfirm("Bu odatni o'chirishni istaysizmi?", (ok) => {
+    if (ok) { state.habits = state.habits.filter(h => h.id !== id); cloudSave(); renderSetup(); }
+  });
+}
+
+function updateHabit(id, field, val) {
+  const h = state.habits.find(h => h.id === id);
+  if (h) { h[field] = val; }
+}
+
+function renderSetup() {
+  const html = state.habits.map(h => `
+    <div class="habit-setup-card">
+      <div class="habit-setup-row">
+        <div class="h-emoji" onclick="openEmoji(${h.id}, this)">${h.emoji}</div>
+        <input class="h-input" value="${h.name}" placeholder="Odat nomi..."
+          oninput="updateHabit(${h.id},'name',this.value)">
+      </div>
+      <div class="h-colors">
+        ${COLORS.map(c => `<div class="h-color ${c===h.color?'sel':''}" style="background:${c}"
+          onclick="setColor(${h.id},'${c}',this)"></div>`).join('')}
+      </div>
+      <button class="del-btn" onclick="delHabit(${h.id})">✕</button>
+    </div>
+  `).join('');
+  document.getElementById('habitsSetup').innerHTML = html;
+}
+
+function setColor(id, color, el) {
+  updateHabit(id, 'color', color);
+  el.closest('.habit-setup-card').querySelectorAll('.h-color').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function saveAndStart() {
+  if (!state.habits.length) { tg.showAlert('Kamida bitta odat qo\'shing!'); return; }
+  cloudSave(() => { showToast('✅ Saqlandi!'); showPage('tracker'); });
+}
+
+function updateEndDate() {
+  const s = document.getElementById('startDate').value;
+  if (!s) return;
+  state.startDate = s;
+  const e = new Date(s); e.setDate(e.getDate() + 29);
+  document.getElementById('endDate').value = e.toISOString().split('T')[0];
+}
+document.getElementById('startDate').addEventListener('change', updateEndDate);
+
+// ═══════════════════════════════════════════════
+//  TRACKER
+// ═══════════════════════════════════════════════
+function getDateStr(d) { return d.toISOString().split('T')[0]; }
+function getDayDate(idx) {
+  const d = new Date(state.startDate); d.setDate(d.getDate() + idx); return d;
+}
+function logKey(dayIdx, hId) { return getDateStr(getDayDate(dayIdx)) + '-' + hId; }
+function isLogged(d, hId)    { return !!state.logs[logKey(d, hId)]; }
+
+function toggleLog(dayIdx, hId, btn) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const day   = getDayDate(dayIdx); day.setHours(0,0,0,0);
+  if (day > today) return;
+  const k = logKey(dayIdx, hId);
+  state.logs[k] = !state.logs[k];
+  if (!state.logs[k]) delete state.logs[k];
+
+  const h = state.habits.find(h => h.id === hId);
+  if (state.logs[k]) {
+    btn.classList.add('done'); btn.textContent = '✓';
+    btn.style.background = h.color;
+    tg.HapticFeedback.impactOccurred('light');
+  } else {
+    btn.classList.remove('done'); btn.textContent = '';
+    btn.style.background = '';
+  }
+  updateRowPct(hId);
+  cloudSave();
+}
+
+function countDone(hId) {
+  return Object.keys(state.logs).filter(k => k.endsWith('-'+hId) && state.logs[k]).length;
+}
+
+function updateRowPct(hId) {
+  const h = state.habits.find(h => h.id === hId);
+  const done = countDone(hId);
+  const pct  = Math.round(done/30*100);
+  const el   = document.getElementById('pct-' + hId);
+  if (el) el.innerHTML = miniProg(pct, h.color);
+}
+
+function miniProg(pct, color) {
+  return `<div class="mini-prog">
+    <div class="mini-track"><div class="mini-fill" style="width:${pct}%;background:${color}"></div></div>
+    <span class="mini-pct">${pct}%</span>
+  </div>`;
+}
+
+function renderTracker() {
+  const ws = state.currentWeek * 7;
+  const we = Math.min(ws + 6, 29);
+  document.getElementById('weekLabel').textContent = `${ws+1}–${we+1}-kun`;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let thead = '<tr><th class="name-th">ODAT</th>';
+  for (let d = ws; d <= we; d++) {
+    const date = getDayDate(d);
+    const isToday = getDateStr(date) === getDateStr(today);
+    thead += `<th style="${isToday?'color:var(--yellow)':''}">${d+1}<br><span style="font-size:9px;opacity:0.6">${DAYS_UZ[date.getDay()]}</span></th>`;
+  }
+  thead += '<th>%</th></tr>';
+  document.querySelector('#trTable thead').innerHTML = thead;
+
+  const tbody = state.habits.map(h => {
+    let cells = `<tr><td class="name-td"><div class="habit-label"><span>${h.emoji}</span><span>${h.name}</span></div></td>`;
+    for (let d = ws; d <= we; d++) {
+      const date = getDayDate(d); date.setHours(0,0,0,0);
+      const future = date > today;
+      const done   = isLogged(d, h.id);
+      const isT    = getDateStr(getDayDate(d)) === getDateStr(today);
+      cells += `<td class="day-td">
+        <button class="chk ${done?'done':''} ${future?'future':''} ${isT?'today':''}"
+          style="${done?`background:${h.color}`:''}"
+          onclick="toggleLog(${d},${h.id},this)">
+          ${done?'✓':''}
+        </button></td>`;
+    }
+    const pct = Math.round(countDone(h.id)/30*100);
+    cells += `<td class="pct-td" id="pct-${h.id}">${miniProg(pct, h.color)}</td></tr>`;
+    return cells;
+  }).join('');
+  document.querySelector('#trTable tbody').innerHTML = tbody;
+
+  // Motivation
+  renderMotivation();
+}
+
+function changeWeek(dir) {
+  state.currentWeek = Math.max(0, Math.min(3, state.currentWeek + dir));
+  renderTracker();
+}
+
+function markAllToday() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.startDate); start.setHours(0,0,0,0);
+  const diff  = Math.floor((today - start) / 86400000);
+  if (diff < 0 || diff > 29) { tg.showAlert('Bugun kuzatish davrida emas!'); return; }
+  state.habits.forEach(h => { state.logs[logKey(diff, h.id)] = true; });
+  cloudSave();
+  renderTracker();
+  tg.HapticFeedback.notificationOccurred('success');
+  showToast('🎉 Barchasini bajardinngiz!');
+}
+
+function renderMotivation() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.startDate); start.setHours(0,0,0,0);
+  const day   = Math.floor((today - start)/86400000);
+  if (day < 0 || day > 29) { document.getElementById('motivationDiv').style.display='none'; return; }
+
+  let done=0, total=0;
+  state.habits.forEach(h => {
+    for (let d=0; d<=Math.min(day,29); d++) { total++; if(isLogged(d,h.id)) done++; }
+  });
+  const pct = total>0 ? Math.round(done/total*100) : 0;
+  const emoji = day<7?'🌱':day<15?'🔥':day<22?'⚡':day<29?'🏆':'🎉';
+  const msg   = day<7?'Ajoyib boshlanish!':day<15?'To\'xtamang!':day<22?'Yarim yo\'lda!':day<29?'Finalga yaqin!':'CHAMPION!';
+
+  const el = document.getElementById('motivationDiv');
+  el.style.display='block';
+  el.innerHTML = `<div class="motivation">
+    <div><div class="mot-title">${msg}</div>
+    <div class="mot-sub">${day+1}-kun | ${done}/${total} | ${pct}%</div></div>
+    <div style="font-size:32px">${emoji}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  SHARE SUMMARY
+// ═══════════════════════════════════════════════
+function shareSummary() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.startDate); start.setHours(0,0,0,0);
+  const day   = Math.min(Math.max(0, Math.floor((today - start)/86400000)), 29);
+
+  let total=0, possible=0;
+  state.habits.forEach(h => {
+    for (let d=0; d<=day; d++) { possible++; if(isLogged(d,h.id)) total++; }
+  });
+  const pct = possible>0 ? Math.round(total/possible*100) : 0;
+
+  let bestStreak=0, cur=0;
+  for (let d=0; d<=29; d++) {
+    const all = state.habits.length && state.habits.every(h => isLogged(d,h.id));
+    all ? (cur++, bestStreak=Math.max(bestStreak,cur)) : (cur=0);
+  }
+
+  // Bot ga ma'lumot yuborish
+  tg.sendData(JSON.stringify({
+    action: 'summary',
+    daysPassed: day,
+    totalDone: total,
+    totalPossible: possible,
+    percentage: pct,
+    bestStreak
+  }));
+}
+
+// ═══════════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════════
+function renderStats() {
+  renderStatCards();
+  renderBarChart();
+  renderHeatmap();
+  renderLineChart();
+  renderAnalysis();
+}
+
+function renderStatCards() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.startDate); start.setHours(0,0,0,0);
+  const day   = Math.min(Math.max(0, Math.floor((today - start)/86400000)), 29);
+
+  let total=0, possible=0;
+  state.habits.forEach(h => {
+    for (let d=0; d<=day; d++) { possible++; if(isLogged(d,h.id)) total++; }
+  });
+  const pct = possible>0 ? Math.round(total/possible*100) : 0;
+
+  let bestStreak=0, cur=0;
+  for (let d=0; d<=29; d++) {
+    const all = state.habits.length && state.habits.every(h => isLogged(d,h.id));
+    all ? (cur++, bestStreak=Math.max(bestStreak,cur)) : (cur=0);
+  }
+
+  const todayDone = state.habits.filter(h => isLogged(day, h.id)).length;
+
+  document.getElementById('statsCards').innerHTML = `
+    <div class="stat-box o"><div class="stat-lbl">Bajarilgan</div><div class="stat-val">${total}</div><div class="stat-sub">${possible} vazifadan</div></div>
+    <div class="stat-box y"><div class="stat-lbl">Muvaffaqiyat</div><div class="stat-val">${pct}%</div><div class="stat-sub">${day+1} kun o'tdi</div></div>
+    <div class="stat-box g"><div class="stat-lbl">Eng streak</div><div class="stat-val">${bestStreak}</div><div class="stat-sub">ketma-ket kun</div></div>
+    <div class="stat-box b"><div class="stat-lbl">Bugun</div><div class="stat-val">${todayDone}/${state.habits.length}</div><div class="stat-sub">odat bajarildi</div></div>
+  `;
+}
+
+function renderBarChart() {
+  const weeks = [0,1,2,3].map(w => {
+    const s=w*7, e=Math.min(s+6,29); let d=0,t=0;
+    for(let i=s;i<=e;i++) state.habits.forEach(h => { t++; if(isLogged(i,h.id)) d++; });
+    return { pct: t>0?Math.round(d/t*100):0, w:w+1 };
+  });
+  document.getElementById('barChart').innerHTML = weeks.map((w,i) => `
+    <div class="bar-item">
+      <div class="bar-val" style="color:${COLORS[i]}">${w.pct}%</div>
+      <div class="bar-col" style="height:${(w.pct/100)*80}px;background:${COLORS[i]}"></div>
+      <div class="bar-lbl">H${w.w}</div>
+    </div>`).join('');
+}
+
+function renderHeatmap() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  document.getElementById('heatmap').innerHTML = Array.from({length:30},(_,d) => {
+    const date = getDayDate(d); date.setHours(0,0,0,0);
+    const future = date > today;
+    const done   = state.habits.filter(h => isLogged(d,h.id)).length;
+    const pct    = state.habits.length ? done/state.habits.length : 0;
+    let bg;
+    if(future) bg='#e8e0d4';
+    else if(pct===0) bg='#ffe0e0';
+    else if(pct<0.5) bg='#fed7aa';
+    else if(pct<1)   bg='#86efac';
+    else             bg='#4a8c6a';
+    const txtColor = future?'#aaa':(pct>0.5?'white':'#555');
+    return `<div class="hc" style="background:${bg};color:${txtColor}" title="${d+1}-kun: ${done}/${state.habits.length}">${d+1}</div>`;
+  }).join('');
+}
+
+function renderLineChart() {
+  const svg = document.getElementById('lineChart');
+  const W=400, H=120, P=20;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const pts = [];
+  for(let d=0; d<30; d++) {
+    const date = getDayDate(d); date.setHours(0,0,0,0);
+    if(date > today) break;
+    const done = state.habits.filter(h => isLogged(d,h.id)).length;
+    const pct  = state.habits.length ? (done/state.habits.length)*100 : 0;
+    pts.push({ x: P+(d/29)*(W-P*2), y: H-P-(pct/100)*(H-P*2), pct });
+  }
+
+  if(pts.length < 2) { svg.innerHTML = `<text x="200" y="60" text-anchor="middle" fill="#aaa" font-size="12">Hali yetarli ma'lumot yo'q</text>`; return; }
+
+  const area = `M${pts[0].x},${H-P} ${pts.map(p=>`L${p.x},${p.y}`).join(' ')} L${pts[pts.length-1].x},${H-P} Z`;
+  const line = `M${pts[0].x},${pts[0].y} ${pts.slice(1).map(p=>`L${p.x},${p.y}`).join(' ')}`;
+  const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${COLORS[0]}" stroke="white" stroke-width="1.5"/>`).join('');
+  const grid = [0,50,100].map(v => { const y=H-P-(v/100)*(H-P*2); return `<line x1="${P}" y1="${y}" x2="${W-P}" y2="${y}" stroke="#e8e0d4" stroke-width="1"/><text x="${P-3}" y="${y+4}" font-size="8" fill="#aaa" text-anchor="end">${v}%</text>`; }).join('');
+
+  svg.innerHTML = grid + `<path d="${area}" fill="${COLORS[0]}22"/><path d="${line}" fill="none" stroke="${COLORS[0]}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` + dots;
+}
+
+function renderAnalysis() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const start = new Date(state.startDate); start.setHours(0,0,0,0);
+  const day   = Math.min(Math.max(0, Math.floor((today - start)/86400000)), 29);
+
+  document.getElementById('habitAnalysis').innerHTML = state.habits.map(h => {
+    const done = countDone(h.id);
+    const pct  = Math.round(done/30*100);
+    let streak=0;
+    for(let d=day; d>=0; d--) { if(isLogged(d,h.id)) streak++; else break; }
+    let bestStr=0, cur=0;
+    for(let d=0;d<=day;d++) { isLogged(d,h.id)?(cur++,bestStr=Math.max(bestStr,cur)):cur=0; }
+
+    let badge, bColor;
+    if(pct>=80) { badge='🏆 Excellent'; bColor=COLORS[2]; }
+    else if(pct>=60) { badge='👍 Yaxshi'; bColor=COLORS[0]; }
+    else if(pct>=40) { badge='⚡ O\'rta'; bColor=COLORS[1]; }
+    else { badge='💡 Yaxshilang'; bColor=COLORS[6]; }
+
+    return `<div class="analysis-item">
+      <div class="ai-top">
+        <span style="font-size:18px">${h.emoji}</span>
+        <span style="font-weight:600;font-size:14px">${h.name}</span>
+        <span class="ai-badge" style="background:${bColor}">${badge}</span>
+        <span class="ai-streak">🔥${streak}</span>
+      </div>
+      <div class="ai-bar">
+        <div class="ai-track"><div class="ai-fill" style="width:${pct}%;background:${h.color}"></div></div>
+        <span class="ai-pct" style="color:${h.color}">${pct}%</span>
+      </div>
+      <div class="ai-meta">
+        <span>✅ <strong>${done}</strong>/30</span>
+        <span>Max streak: <strong>${bestStr}</strong></span>
+        <span>${done>=25?'✨ Maqsad!':'📈 '+(25-done)+' kun qoldi'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  EMOJI PICKER
+// ═══════════════════════════════════════════════
+let activeEmojiId = null;
+function openEmoji(id, el) {
+  activeEmojiId = id;
+  const picker = document.getElementById('emojiPicker');
+  picker.innerHTML = EMOJIS.map(e => `<div class="ep-opt" onclick="pickEmoji('${e}')">${e}</div>`).join('');
+  const rect = el.getBoundingClientRect();
+  picker.style.left = Math.min(rect.left, window.innerWidth-200) + 'px';
+  picker.style.top  = (rect.bottom + 6) + 'px';
+  picker.style.display = 'grid';
+}
+function pickEmoji(e) {
+  updateHabit(activeEmojiId, 'emoji', e);
+  document.getElementById('emojiPicker').style.display = 'none';
+  renderSetup();
+}
+document.addEventListener('click', ev => {
+  if (!ev.target.closest('#emojiPicker') && !ev.target.closest('.h-emoji'))
+    document.getElementById('emojiPicker').style.display='none';
+});
+
+// ═══════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity='1';
+  setTimeout(() => t.style.opacity='0', 2000);
+}
+
+function showSaveStatus(msg) {
+  const el = document.getElementById('saveStatus');
+  if (el) { el.textContent = msg; setTimeout(()=>el.textContent='☁️ CloudStorage\'ga avtomatik saqlanadi', 2000); }
+}
+
+// ═══════════════════════════════════════════════
+//  START
+// ═══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
